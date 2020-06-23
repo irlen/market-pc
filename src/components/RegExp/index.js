@@ -50,7 +50,7 @@ const rangePort = (str)=>{
 //正数（包括浮点型）
 const forNumber = /^[0-9]\.\d+$|^[1-9]+\.\d+$|^[1-9][0-9]*$/
 //名称相关
-const forName = /^(?!_)(?!.*?_$)[a-zA-Z0-9_\u4e00-\u9fa5]+$/
+const forName = /^[a-zA-Z0-9_\u4e00-\u9fa5]{0,10}$/
 
 //邮箱
 const forEmail = /^([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+@([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+\.[a-zA-Z]{2,3}$/

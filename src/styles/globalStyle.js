@@ -1,22 +1,15 @@
-const publicStyle = {
-  color: '#ffffff'
+const globalStyle = {
+  body:{
+    margin: 0,
+    padding: 0,
+    color: "#333333",
+  },
+  div:{
+    boxSizing: "border-box"
+  },
+
 }
-//深蓝主题
-const deepBlue = {
-  bodyBg: '#192139', //(25,33,57)body背景色
-  fontColor: 'rgba(255,255,255,0.8)', //字体颜色
-  fontSize: '14px', //字体大小
-  forBorder: 'rgba(10,15,32,0.4) solid 1px', //边框
-  //module模块
-  moduleBg: 'rgba(69,83,123,0.1)',
-  moduleBorderRadius: '5px',
-  modulePadding: '20px',
-  //选中文字颜色
-  selectFontColor: "#01bd4c",
-}
-
-
-//被emotion-theme引用，作为全局引用
+exports.globalStyle = globalStyle
 
 
 
@@ -27,14 +20,7 @@ const deepBlue = {
 
 
 
-
-
-
-
-
-
-
-
-
-
-export { publicStyle, deepBlue }
+// /** @jsx jsx */
+// import { jsx, css, Global, ClassNames } from '@emotion/core'
+// import styled from '@emotion/styled'
+// https://react-icons.netlify.com/#/

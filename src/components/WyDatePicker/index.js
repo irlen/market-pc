@@ -11,51 +11,32 @@ const oneHourBefore = now2.subtract(1,'h')
 class WyDatePicker extends Component{
   state={
     curTime: [],
+
     isSubmit: false
   }
 
   componentDidMount(){
-      const { curTime } = this.props
+      console.log(moment().format('YYYY-MM-DD HH:mm:ss'))
+      console.log(moment().subtract(1,'w').format('YYYY-MM-DD HH:mm:ss'))
+      const end_time = moment().format('YYYY-MM-DD HH:mm:ss');
+      const start_time = moment().subtract(1,'w').format('YYYY-MM-DD HH:mm:ss')
+      const curTime = [start_time,end_time]
       this.setState({
-        curTime,
-        isSubmit: false
+        curTime
+      },()=>{
+        this.props.rangeTimeChange(curTime)
       })
   }
-
-  componentWillReceiveProps(nextProps){
-    if(JSON.stringify(_.cloneDeep(this.props.curTime)) !== JSON.stringify(_.cloneDeep(nextProps.curTime))){
-      const { curTime } = nextProps
-      this.setState({
-        curTime,
-        isSubmit: false
-      })
-    }
-  }
-
 
   rangeTimeChange = (dates, dateStrings)=>{
     this.setState({
       curTime: [...dateStrings],
       isSubmit: false
+    },()=>{
+      this.props.rangeTimeChange(this.state.curTime)
     })
   }
 
-  //时间下拉隐藏回调函数，检测
-  // getSlideStatus = (status)=>{
-  //   if(status === false && this.props.rangeTimeChange){
-  //     console.log('消失')
-  //     console.log(this.state.curTime)
-  //     this.props.rangeTimeChange(this.state.curTime)
-  //   }
-  // }
-  componentWillUpdate(nextProps,nextState){
-    if(this.props.rangeTimeChange && nextState.isSubmit === true){
-      this.props.rangeTimeChange(nextState.curTime)
-      this.setState({
-        isSubmit: false
-      })
-    }
-  }
   timeOk=()=>{
     this.setState({
       isSubmit: true
@@ -91,7 +72,7 @@ class WyDatePicker extends Component{
             disabledDate={this.disabledDate}
             showTime={{format:'HH:mm:ss'}}
             format="YYYY-MM-DD HH:mm:ss"
-            value={this.state.curTime && this.state.curTime.length >0? [moment(this.state.curTime[0],'YYYY-MM-DD HH:mm:ss'),moment(this.state.curTime[1],'YYYY-MM-DD HH:mm:ss')]:[]}
+            value={[moment(this.state.curTime[0],'YYYY-MM-DD HH:mm:ss'),moment(this.state.curTime[1],'YYYY-MM-DD HH:mm:ss')]}
             onChange={this.rangeTimeChange}
             onOk={this.timeOk}
             placeholder={this.props.placeholder?this.props.placeholder:null}
