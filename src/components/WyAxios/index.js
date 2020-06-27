@@ -14,10 +14,10 @@ const wyAxiosPost = (url,data,callback)=>{
     url: wholeUrl,
     data: data,
     method: "post",
-    // headers: {
-    //   "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-	  // "Content-Type": "application/json; charset=UTF-8",
-    // }
+    headers: {
+      //"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+	  "Content-Type": "application/json; charset=UTF-8",
+    }
   }
 ).then((result)=>{
     if(result.status === 200){

@@ -5,291 +5,193 @@ import React, { useState, useEffect, useRef } from 'react'
 import { connect } from 'react-redux'
 import _ from 'lodash'
 import { Scrollbars } from 'react-custom-scrollbars'
-import { Tabs, Tree, Input, message, Button, Empty, Modal } from 'antd'
-import { FaNewspaper } from 'react-icons/fa'
+import { Tabs , Row, Col, Button, Divider, Drawer, Table, Spin, Empty, message, Popconfirm, Modal, Input, Form, InputNumber} from 'antd'
+import { AiTwotoneEdit } from "react-icons/ai";
+import { MdDelete } from "react-icons/md";
 
-import { base64Encode } from '../../components/Base64'
 import { wyAxiosPost } from '../../components/WyAxios'
 import { curTheme } from '../../styles/defineColor'
-import { getCurDevice,setVersionId } from '../../redux/actions'
-import DeviceTable from './DeviceTable'
-import Compare from './Compare'
-import CompareReport from './CompareReport'
-const { Search } = Input
+
+
+
 const { TabPane } = Tabs
-const SpaceSpan = styled.span({
-  display:"inline-block",
-  margin:"0 5px 0 5px"
-})
-const SpanNew = styled.span({
-  fontWeight:"normal",
-  verticalAlign: "middle",
-  cursor:"pointer",
-  "&:hover":{
-    fontWeight:"bold",
-    color:"#00CC66",
-    fontSize:"16px"
-  },
-  "&:active":{
-    opacity:0.8
-  }
-})
 function LookSet(props){
+  //页面高度
   const [ windowH,setWindowH ]  = useState(0);
-  const [ treeData,setTreeData ]  = useState([]);
-  const [ deviceName,setDeviceName ]  = useState("");
-  const [ treeParam,setTreeParam ] = useState({expandedKeys: [],searchValue: '',autoExpandParent: true})
-  const [ ids,setIds] = useState([])
-  const [ visible,setVisible] = useState(false)
-  const [ modalType, setModalType ] = useState('')
-  const [deviceId, setDeviceId] = useState("");
+  const [visible, setVisible]  = useState(false)
+  const [id, setId]  = useState("")
+  //我的列表
+  const [tableData,setTableData] = useState({total:0,xData:[],yData:[]})
+  const [spinning,setSpinning] = useState(false)
+  //分页信息
+  const [pageInfo,setPageInfo] = useState({pageSize:10,current:1, search:""})
+  //选中条数
+  const [ selectedRowKeys,setSelectedRowKeys ] = useState([])
+  const [ _isMounted,set_isMounted ] = useState(true)
+  //表单相关
+  const [form] = Form.useForm();
+  const [formData,setFormData] = useState({categoryName:"",categoryType:""})
+
 
   //做初始化
   useEffect(()=>{
     setWindowH(props.windowH);
-    getDeviceData();
+    getTableData();
+    return ()=>{
+      set_isMounted(false)
+    }
   },[])
-  //监控windowH
   useEffect(()=>{
-    setWindowH(props.windowH);
+    setWindowH(props.windowH)
   },[props.windowH])
-  //监控deviceName
   useEffect(()=>{
-    if(props.deviceName){
-      setDeviceName(props.deviceName)
-      setDeviceId(props.deviceId)
-    }
-  },[props.deviceName])
-  useEffect(()=>{
-    setIds(props.ids)
-  },[props.ids])
+    form.setFieldsValue(formData);
+  },[formData])
 
-  useEffect(()=>{
-    if(modalType){
-      showModal()
-    }
-  },[modalType])
-  function getDeviceData(){
-    wyAxiosPost('group/getinfo',{},(result)=>{
-      if(result.status === 0){
-        message.warning(result.msg)
-        return
+
+  function getTableData(){
+    const info = {current:1,pageSize:5}
+    wyAxiosPost('productInfo/all',{...info},(result)=>{
+      if(result.code === 1){
+        const xData = _.cloneDeep(result.data.xData);
+        const yData = _.cloneDeep(result.data.yData);
+        if(yData && yData.length>0){
+          yData.map(item=>{
+            item.key = item.categoryId
+          })
+        }
+        const edit = {
+          key: 'edit',
+          title: '操作',
+          dataIndex:'edit',
+          width: 160,
+          render: (text,record,index)=>(
+            <span><Button onClick={()=>{doEdit(record.key)}} size={"small"}>修改</Button><Button style={{marginLeft:"10px"}} onClick={()=>{doDelete(record.key)}} size={"small"}>删除</Button></span>
+          )
+        }
+        xData.push(edit);
+        const newTableData = Object.assign({},tableData,{xData:xData},{yData:yData});
+        setTableData(newTableData);
+      }else{
+        message.warning(result.msg);
       }
-      const data = _.cloneDeep(result.msg)
-      setTreeData(data)
     })
   }
-  function defineGet(key, tree){
-    let parentKeys = []
-    const haha = (key, tree)=>{
-      for (let i = 0; i < tree.length; i++) {
-        const node = tree[i];
-        if (node.children && node.children.length>0) {
-          if (node.children.some(item => item.key === key)) {
-            parentKeys.push(node.key);
-          }else{
-            haha(key,node.children)
-          }
-        }
-      }
-    }
-    haha(key,tree)
-    return parentKeys
+  function onSelectChange(selectedRowKeys ){
+    setSelectedRowKeys(selectedRowKeys );
   }
+  function doEdit(id){
+    setId(id);
+  }
+  function doDelete(id){
 
-  function searchChange(e){
-    const { value } = e.target;
-    let expandedKeys = []
-    const panta = (data)=>{
-      if(data && data.length>0){
-        data.map(item => {
-          if (item.title.indexOf(value) > -1) {
-            const result =  defineGet(item.key, treeData);
-            expandedKeys = expandedKeys.concat(result)
-          }else{
-            if(item.children && item.children.length>0){
-              panta(item.children)
-            }
-          }
-        })
-      }
-    }
-    panta(treeData)
-    expandedKeys = expandedKeys.filter((item, i, self) => item && self.indexOf(item) === i); //将后面重复的给过滤掉了
-    const param = {expandedKeys,searchValue: value,autoExpandParent: true,}
-    const curParam = _.cloneDeep(treeParam)
-    const newParam = Object.assign({},curParam,param)
-    setTreeParam(newParam)
-  }
-
-  function selectDevice (value,e){
-    if(value && value.length>0 && e.node.type==='device'){
-      const {is_fire,name} = e.node
-      const key = value[0]
-      props.getCurDevice({key,title: name,is_fire})
-      props.setVersionId("")
-    }
-    // if(value && value.length>0){
-    //   const str = value[0]
-    //   const arr = str.split("_");
-    //   if(arr[0] === "device"){
-    //     const deviceName = e.node.title.props.children[2];
-    //     const is_fire = e.node.is_fire
-    //     props.getCurDevice({key:arr[2],title: deviceName,is_fire})
-    //     props.setVersionId("")
-    //   }
-    // }
-  }
-  const onExpand = expandedKeys => {
-    const param = {expandedKeys,autoExpandParent: false}
-    const curParam = _.cloneDeep(treeParam)
-    const newParam = Object.assign({},curParam,param)
-    setTreeParam(newParam)
-  }
-  const loop =data =>data.map((item,order) => {
-        const index = item.title.indexOf(treeParam.searchValue);
-        const beforeStr = item.title.substr(0, index);
-        const afterStr = item.title.substr(index + treeParam.searchValue.length);
-        const title =
-          index > -1 ? (
-            <span>
-              {beforeStr}
-              <span style={{color: curTheme.focusColor}}>{treeParam.searchValue}</span>
-              {afterStr}
-            </span>
-          ) : (
-            <span>{item.title}</span>
-          );
-
-        if (item.children && item.children.length>0) {
-          return { title,
-            //key: `${item.type}_${order}_${item.key}`,
-            key: item.key,
-            children: loop(item.children) };
-        }
-        return {
-          title,
-          //key: `${item.type}_${order}_${item.key}`,
-          key: item.key,
-          is_fire: item.is_fire,
-          type: item.type,
-          name: item.title
-        };
-      });
-  function doCompare(value){
-    if(ids && ids.length !== 2 || ids.length === 0){
-      message.warning('请选择两条信息做对比')
-      return
-    }
-    setModalType(value)
   }
   function showModal(){
-    setVisible(true)
-  }
-  function handleCancel(){
-    setVisible(false)
-    setModalType("")
-  }
-  function handleOk(){
-    handleCancel();
-  }
-  function toPageCompare(){
+   setVisible(true);
+ };
+ function handleOk(){
+   const info = {current:1,pageSize:10}
+   if(id){
+     info.categoryId = id
+   }
+   if(!info.categoryName || !info.categoryTye){
+     message.warning("请正确完整的填写信息！");
+     return
+   }
+   wyAxiosPost('productInfo/all',{...info},(result)=>{
+     if(result.code === 1){
+       getTableData();
+       handleCancel();
+       message.success(result.msg);
+     }else{
+       message.warning(result.msg);
+     }
+   });
+ };
 
-    const param = { deviceId,deviceName,ids, modalType }
-    window.open("/#/pageforcom/"+base64Encode(JSON.stringify(param)))
-  }
+ function handleCancel(){
+   setVisible(false);
+   setFormData({categoryName:"",categoryType:""});
+   setId("");
+ };
+ function addCategory(){
+   showModal();
+ }
+
+ //表单事件
+ function formChange(value){
+   const newFormData = Object.assign({},formData,value);
+   setFormData(newFormData);
+ }
+
+ const rowSelection = {
+  selectedRowKeys,
+  onChange: onSelectChange,
+ };
   return (
-    <div>
-      <div style={{display:"flex",alignContent:"space-between"}}>
-        <div style={{flex:"0 0 200px",background:curTheme.moduleBg,padding:"20px",boxShadow:curTheme.boxShadow}}>
-          <Scrollbars
-            autoHide
-            autoHideTimeout={100}
-            autoHideDuration={200}
-            universal={true}
-            style={{height: windowH===0?0 : windowH-142+'px'}}
-          >
-            <Search style={{ marginBottom: 8 }} placeholder="search" onChange={searchChange} />
-            <Tree
-              onExpand={onExpand}
-              expandedKeys={treeParam.expandedKeys}
-              autoExpandParent={treeParam.autoExpandParent}
-              treeData={loop(treeData)}
-              onSelect={selectDevice}
-            />
-          </Scrollbars>
-        </div>
-        <div style={{flex:"1 1 auto",paddingLeft:"10px",}}>
-            <Scrollbars
-              autoHide
-              autoHideTimeout={100}
-              autoHideDuration={200}
-              universal={true}
-              style={{height: windowH===0?0 : windowH-100+'px'}}
-            >
-              <div style={{minHeight:windowH===0?0 : windowH-100+'px',height:"auto",background:curTheme.moduleBg,padding:"20px",boxShadow:curTheme.boxShadow}}>
-            {
-              deviceName?
-              <div>
-                <div style={{marginBottom:"10px",display:"flex"}}>
-                  <div style={{flex:"0 0 100px",paddingLeft:"10px"}}>
-                    <h3>{ deviceName }</h3>
-                  </div>
-                  <div style={{flex:"1 1 auto",textAlign:"right"}}>
-                    <SpaceSpan><Button type="primary" size={"small"} onClick={()=>{doCompare('compare')}}>对比</Button></SpaceSpan>
-                    <SpaceSpan><Button type="primary" size={"small"} onClick={()=>{doCompare('report')}}>对比报告</Button></SpaceSpan>
-                  </div>
-                </div>
-                <div>
-                  <DeviceTable />
-                </div>
-              </div>
-              :
-              <Empty />
-
-            }
-            </div>
-            </Scrollbars>
-        </div>
-      </div>
-      <Modal
-        title={`${deviceName}版本对比`}
-        title={
-          <div style={{display:"flex"}}>
-            <div style={{flex:"1 1 auto"}}>{`${deviceName}版本对比`}</div>
-            <div style={{flex:"0 0 80px"}}> <SpanNew title="新窗口中查看" onClick={toPageCompare}><FaNewspaper /></SpanNew>  </div>
+    <div style={{background:curTheme.moduleBg,padding:"20px"}}>
+      <Row gutter={16}>
+        <Col span={24}>
+          <div style={{textAlign:"right",lineHeight:"50px"}}>
+            <Button style={{marginRight:"10px"}} type="primary" onClick={addCategory}>添加</Button>
+            <Button>删除</Button>
           </div>
-        }
+        </Col>
+      </Row>
+      <Row gutter={16}>
+        <Col span={24}>
+          <Table
+            size={'small'}
+            columns={tableData.xData}
+            dataSource={tableData.yData}
+            rowSelection={rowSelection}
+          />
+        </Col>
+      </Row>
+      <Modal
+        title={id?"修改":"新增"}
         visible={visible}
         onOk={handleOk}
         onCancel={handleCancel}
-        footer={null}
-        width={"96%"}
-        destroyOnClose={true}
       >
-        <div>
-          {
-            modalType === 'compare'?
-            <Compare />
-            :
-            <CompareReport />
-          }
-        </div>
+          <Form
+            layout={'horizontal'}
+            form={form}
+            onValuesChange={formChange}
+          >
+            <Form.Item
+              label="类目名称"
+              name="categoryName"
+              rules={[
+                 {
+                   required: true,
+                   message: '请输入类目名称!',
+                 },
+               ]}
+               hasFeedback
+            >
+              <Input />
+            </Form.Item>
+            <Form.Item
+              label="类目编号"
+              name="categoryType"
+              rules={[
+                 {
+                   required: true,
+                   message: '请输入类目编号!',
+                 },
+               ]}
+               hasFeedback
+            >
+              <InputNumber min={0} />
+            </Form.Item>
+          </Form>
       </Modal>
     </div>
   )
 }
-const mapStateToProps = (state)=>({
-  windowH: state.windowH.windowH,
-  deviceName: state.lookset.deviceName,
-  ids: state.lookset.ids,
-  deviceId: state.lookset.deviceId
-})
-const mapDispatchToProps = (dispatch)=>({
-  getCurDevice: (value)=>{dispatch(getCurDevice(value))},
-  setVersionId: (value)=>{dispatch(setVersionId(value))}
-})
-export default connect(mapStateToProps,mapDispatchToProps)(LookSet)
 
-// Persistence.createENtityManagerFactory
-// createEntiryManager
+const mapStateToProps = (state)=>({
+  windowH: state.windowH.windowH
+})
+export default connect(mapStateToProps,null)(LookSet)
