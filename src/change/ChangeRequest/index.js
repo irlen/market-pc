@@ -93,7 +93,8 @@ function ChangeRequest(props){
    if(id){
      info.categoryId = id
    }
-   if(!info.categoryName || !info.categoryTye){
+   console.log(info.categoryType,info.categoryName)
+   if(info.categoryName==="" || info.categoryTye===""){
      message.warning("请正确完整的填写信息！");
      return
    }

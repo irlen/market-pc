@@ -12,11 +12,11 @@ const wyAxiosPost = (url,data,callback)=>{
   //axios.defaults.headers.common['Authorization'] = user_token
   axios({
     url: wholeUrl,
-    data: data,
+    data: postData,
     method: "post",
     headers: {
-      //"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-	  "Content-Type": "application/json; charset=UTF-8",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+	  //"Content-Type": "application/json; charset=UTF-8",
     }
   }
 ).then((result)=>{
